@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": -9, "left": 114.6, "attrs": {} },
+    { "type": "wokwi-ds1307", "id": "rtc1", "top": -235.8, "left": 240.1, "attrs": {} },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": 256,
+      "left": 120.8,
+      "attrs": { "pins": "i2c" }
+    },
+    {
+      "type": "wokwi-membrane-keypad",
+      "id": "keypad1",
+      "top": -263.8,
+      "left": 455.4,
+      "rotate": 90,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay1",
+      "top": -112.2,
+      "left": -140.4,
+      "rotate": 270,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relay2",
+      "top": -112.2,
+      "left": -63.6,
+      "rotate": 270,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "lcd1:VCC", "uno:5V", "red", [ "h-19.2", "v-67.1", "h163.2" ] ],
+    [ "uno:GND.2", "lcd1:GND", "blue", [ "v38.3", "h-188.1", "v76.8" ] ],
+    [ "lcd1:SDA", "uno:A4", "yellow", [ "h-38.4", "v-105.4", "h278.4" ] ],
+    [ "uno:A5", "lcd1:SCL", "cyan", [ "v28.7", "h-293.3", "v105.6" ] ],
+    [ "rtc1:SCL", "uno:A5.2", "cyan", [ "h0" ] ],
+    [ "rtc1:SDA", "uno:A4.2", "yellow", [ "h0" ] ],
+    [ "uno:5V", "rtc1:5V", "red", [ "v47.9", "h-226.6", "v-268.8" ] ],
+    [ "keypad1:C4", "uno:4", "green", [ "h0" ] ],
+    [ "uno:5", "keypad1:C3", "green", [ "v0" ] ],
+    [ "keypad1:C2", "uno:6", "green", [ "h-105.6", "v38.4" ] ],
+    [ "uno:7", "keypad1:C1", "green", [ "v0" ] ],
+    [ "keypad1:R4", "uno:8", "green", [ "h0" ] ],
+    [ "uno:9", "keypad1:R3", "green", [ "v0" ] ],
+    [ "keypad1:R2", "uno:10", "green", [ "h0" ] ],
+    [ "uno:11", "keypad1:R1", "green", [ "v0" ] ],
+    [ "uno:5V", "relay1:VCC", "red", [ "v47.9", "h-226.6", "v-220.8", "h-105.6" ] ],
+    [ "relay1:GND", "uno:GND.1", "blue", [ "v19.2", "h162.8", "v-19.2", "h115.2" ] ],
+    [ "relay1:IN", "uno:13", "green", [ "v9.6", "h134.2", "v-19.2", "h144" ] ],
+    [ "relay2:VCC", "relay1:VCC", "red", [ "v28.8", "h19.2" ] ],
+    [ "relay2:GND", "uno:GND.1", "blue", [ "v19.2", "h76.4", "v-19.2", "h115.2" ] ],
+    [ "relay2:IN", "uno:12", "green", [ "v0", "h47.8", "v-19.2", "h192" ] ]
+  ],
+  "dependencies": {}
+}
