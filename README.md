@@ -9,4 +9,4 @@ A timer circuit built to control a hydrophonic farm water controller's power to 
 
 ## Usage
 
--Flash this code using Arduino IDE or PlatformIO.
+- Flash this code using Arduino IDE or PlatformIO.
