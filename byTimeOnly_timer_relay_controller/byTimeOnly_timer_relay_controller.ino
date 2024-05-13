@@ -22,19 +22,32 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 // Variables for timestamp management
 const int MAX_TIMESTAMPS = 10;
-unsigned long timestamps[MAX_TIMESTAMPS];
+unsigned long times[MAX_TIMESTAMPS]; // store time of day in seconds since midnight
 int timeBlobs[MAX_TIMESTAMPS];
 int numTimestamps = 0;
-DateTime currentTime;
+bool hasRunToday[MAX_TIMESTAMPS];
 int j = 0;
+
+// Smiley face custom character
+byte smiley[8] = {
+  0b00000,
+  0b01010,
+  0b01010,
+  0b00000,
+  0b10001,
+  0b01110,
+  0b00000,
+};
 
 void setup() {
   Serial.begin(9600);
-  pinMode(3, INPUT);
   pinMode(12, OUTPUT);
   pinMode(13, OUTPUT);
   lcd.init();
   lcd.backlight();
+
+  // Create the smiley face character
+  lcd.createChar(0, smiley);
 
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -54,57 +67,50 @@ void setup() {
     lcd.setCursor(0, 3);
     lcd.print("the time!");
     delay(3000);
-    rtc.adjust(setTimeStampUsingKeypad());
+    rtc.adjust(setTimeUsingKeypad());
   }
   lcd.clear();
 }
 
 void loop() {
-  
-  displayTime(1);
-  delay(1000);
-  //get the timestamp only at first loop of the program
-  if(j==0){
-    collectTimestamps();
+  static unsigned long lastSwitchTime = 0;
+  static bool showTime = true;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastSwitchTime >= 5000) {
+    lastSwitchTime = currentMillis;
+    showTime = !showTime;
   }
 
-  lcd.clear();
+  if (showTime) {
+    displayTime(1);
+  } else {
+    displayEmoji();
+  }
 
-  currentTime = rtc.now().unixtime();
-  // for each timestamp see if it is passed
-  for(int i=0; i<numTimestamps; i++){
+  delay(1000);
 
-    if (currentTime > timestamps[i]){
-      displayTime(timestamps[i]);
-      timestamps[i] = 0;
-      lcd.setCursor(0,0);
-      lcd.print("Timestamp ");
-      lcd.print(i + 1);
-      lcd.setCursor(0, 1);
-      lcd.print("Has Passed!");
-      lcd.setCursor(-3, 2);
-      lcd.print("Turning on relay");
-      digitalWrite(12, HIGH);
-      digitalWrite(13, HIGH);
-      for(int m=0; m<timeBlobs[i]; m++){
-        delay(600);
-        lcd.clear();
-        lcd.setCursor(2, 1);
-        lcd.print("Relays are On");
-        delay(400);
-        lcd.clear();
+  if (j == 0) {
+    collectTimes();
+  }
 
-      }
-      digitalWrite(12, LOW);
-      digitalWrite(13, LOW);
-      lcd.clear();
-      lcd.setCursor(2, 1);
-      lcd.print("Relays are Off");
+  DateTime currentTime = rtc.now();
+  unsigned long currentSeconds = currentTime.hour() * 3600UL + currentTime.minute() * 60 + currentTime.second();
+
+  for (int i = 0; i < numTimestamps; i++) {
+    if (currentSeconds == times[i] && !hasRunToday[i]) {
+      activateRelay(i);
+      hasRunToday[i] = true;
+    }
+
+    // Reset hasRunToday flags at midnight
+    if (currentSeconds == 0) {
+      hasRunToday[i] = false;
     }
   }
+
   j++;
 }
-
 
 String getUserInput() {
   String userInput = "";
@@ -112,11 +118,11 @@ String getUserInput() {
   
   do {
     key = keypad.getKey();
-    if (key != NO_KEY && key != 'D' && key!='C') {
+    if (key != NO_KEY && key != 'D' && key != 'C') {
       userInput += key;
       lcd.print(key);
     }
-    if (key == 'C'){
+    if (key == 'C') {
       userInput = "";
       lcd.clear();
     }
@@ -125,7 +131,7 @@ String getUserInput() {
   return userInput;
 }
 
-DateTime setTimeStampUsingKeypad() {
+DateTime setTimeUsingKeypad() {
   String userInput;
   int year, month, day, hour, minute, second;
   
@@ -194,38 +200,38 @@ DateTime setTimeStampUsingKeypad() {
   return time;
 }
 
-
 void displayTime(unsigned long a) {
-  //to display current time send (Int 1) as parameter
   DateTime now;
-  if (a==1){
+  if (a == 1) {
     now = rtc.now();
-  }
-  else{
+  } else {
     now = DateTime(a);
   }
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(now.year());
   lcd.print(':');
   lcd.print(now.month());
   lcd.print(':');
   lcd.print(now.day());
   lcd.print("    ");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(now.hour());
   lcd.print(':');
   lcd.print(now.minute());
   lcd.print(':');
   lcd.print(now.second());
   lcd.print("    ");
-  
 }
 
-
-
-void collectTimestamps() {
+void displayEmoji() {
   lcd.clear();
-  lcd.print("Enter # of timestamps:");
+  lcd.setCursor(7, 1);
+  lcd.write(byte(0)); // display the smiley face character
+}
+
+void collectTimes() {
+  lcd.clear();
+  lcd.print("Enter # of times:");
   delay(2000);
   lcd.setCursor(0, 1);
   numTimestamps = getUserInput().toInt();
@@ -233,16 +239,61 @@ void collectTimestamps() {
   for (int i = 0; i < numTimestamps && i < MAX_TIMESTAMPS; i++) {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Timestamp ");
+    lcd.print("Time ");
     lcd.print(i + 1);
     delay(1000);
-    timestamps[i] = setTimeStampUsingKeypad().unixtime();
+
+    lcd.clear();
+    lcd.print("Set Hour (HH)");
+    delay(1000);
+    lcd.setCursor(0, 1);
+    int hour = getUserInput().toInt();
+
+    lcd.clear();
+    lcd.print("Set Minute (MM)");
+    delay(1000);
+    lcd.setCursor(0, 1);
+    int minute = getUserInput().toInt();
+
+    lcd.clear();
+    lcd.print("Set Second (SS)");
+    delay(1000);
+    lcd.setCursor(0, 1);
+    int second = getUserInput().toInt();
+
+    times[i] = hour * 3600UL + minute * 60 + second; // convert time to seconds since midnight
+    hasRunToday[i] = false;
+
     lcd.clear();
     lcd.println("Set Timeout ");
     lcd.setCursor(0, 1);
-    lcd.println("in Seconds(S) :");
+    lcd.println("in Seconds (S):");
     delay(1000);
     timeBlobs[i] = getUserInput().toInt();
-
   }
+}
+
+void activateRelay(int index) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Time to Activate");
+  lcd.setCursor(0, 1);
+  lcd.print("Relay!");
+  lcd.setCursor(0, 2);
+  lcd.print("Turning on relay");
+  digitalWrite(12, HIGH);
+  digitalWrite(13, HIGH);
+
+  for (int m = 0; m < timeBlobs[index]; m++) {
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(2, 1);
+    lcd.print("Relays are On");
+  }
+
+  digitalWrite(12, LOW);
+  digitalWrite(13, LOW);
+  lcd.clear();
+  lcd.setCursor(2, 1);
+  lcd.print("Relays are Off");
 }
