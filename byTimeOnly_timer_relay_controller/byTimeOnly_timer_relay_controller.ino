@@ -39,6 +39,13 @@ byte smiley[8] = {
   0b00000,
 };
 
+// Variables for moving the smiley face
+int smileyPosX = -6;
+int smileyPosY = 3;
+unsigned long lastMoveTime = 0;
+const unsigned long moveInterval = 500; // Move every 500ms
+const int numCols = 16; // Number of columns in the LCD
+
 void setup() {
   Serial.begin(9600);
   pinMode(12, OUTPUT);
@@ -85,10 +92,13 @@ void loop() {
   if (showTime) {
     displayTime(1);
   } else {
-    displayEmoji();
+    lcd.setCursor(0, 1);
+    lcd.print("Have a Nice Day!");
+    moveSmiley();
   }
 
   delay(1000);
+  lcd.clear();
 
   if (j == 0) {
     collectTimes();
@@ -223,10 +233,25 @@ void displayTime(unsigned long a) {
   lcd.print("    ");
 }
 
-void displayEmoji() {
-  lcd.clear();
-  lcd.setCursor(7, 1);
-  lcd.write(byte(0)); // display the smiley face character
+void moveSmiley() {
+  unsigned long currentMillis = millis();
+  if (currentMillis - lastMoveTime >= moveInterval) {
+    lastMoveTime = currentMillis;
+
+    // Clear the previous smiley face
+    lcd.setCursor(smileyPosX, smileyPosY);
+    lcd.print(" ");
+
+    // Update the smiley position
+    smileyPosX++;
+    if (smileyPosX >= numCols) {
+      smileyPosX = 0; // Reset to the beginning
+    }
+
+    // Display the smiley face at the new position
+    lcd.setCursor(smileyPosX, smileyPosY);
+    lcd.write(byte(0));
+  }
 }
 
 void collectTimes() {
@@ -270,6 +295,7 @@ void collectTimes() {
     lcd.println("in Seconds (S):");
     delay(1000);
     timeBlobs[i] = getUserInput().toInt();
+    lcd.clear();
   }
 }
 
@@ -296,4 +322,6 @@ void activateRelay(int index) {
   lcd.clear();
   lcd.setCursor(2, 1);
   lcd.print("Relays are Off");
+  delay(1000);
+  lcd.clear();
 }
